@@ -1,0 +1,126 @@
+{
+    "Reservations": [
+        {
+            "ReservationId": "r-36a32f139eb41b76a",
+            "OwnerId": "000000000000",
+            "Groups": [],
+            "Instances": [
+                {
+                    "Architecture": "x86_64",
+                    "BlockDeviceMappings": [
+                        {
+                            "DeviceName": "/dev/xvda",
+                            "Ebs": {
+                                "AttachTime": "2026-10-02T13:40:21.628000+00:00",
+                                "DeleteOnTermination": true,
+                                "Status": "attached",
+                                "VolumeId": "vol-ee0f0868e497ccfd9"
+                            }
+                        }
+                    ],
+                    "ClientToken": "terraform-F6nRfv1S1tlH4DyoBeG2XnvDEE",
+                    "EbsOptimized": false,
+                    "EnaSupport": true,
+                    "Hypervisor": "xen",
+                    "NetworkInterfaces": [
+                        {
+                            "Attachment": {
+                                "AttachTime": "2026-10-02T13:40:21.628000+00:00",
+                                "AttachmentId": "eni-attach-13c3f42bce8af57d2",
+                                "DeleteOnTermination": true,
+                                "DeviceIndex": 0,
+                                "Status": "attached"
+                            },
+                            "Groups": [
+                                {
+                                    "GroupId": "sg-default-us-east-1",
+                                    "GroupName": "default"
+                                }
+                            ],
+                            "NetworkInterfaceId": "eni-3f09b9c4fe7c8c9d0",
+                            "OwnerId": "000000000000",
+                            "PrivateDnsName": "ip-172-31-32-10.ec2.internal",
+                            "PrivateIpAddress": "172.31.32.10",
+                            "PrivateIpAddresses": [
+                                {
+                                    "Primary": true,
+                                    "PrivateDnsName": "ip-172-31-32-10.ec2.internal",
+                                    "PrivateIpAddress": "172.31.32.10"
+                                }
+                            ],
+                            "SourceDestCheck": true,
+                            "Status": "in-use",
+                            "SubnetId": "subnet-default-us-east-1-c",
+                            "VpcId": "vpc-default-us-east-1"
+                        }
+                    ],
+                    "RootDeviceName": "/dev/xvda",
+                    "RootDeviceType": "ebs",
+                    "SecurityGroups": [
+                        {
+                            "GroupId": "sg-default-us-east-1",
+                            "GroupName": "default"
+                        }
+                    ],
+                    "SourceDestCheck": true,
+                    "Tags": [
+                        {
+                            "Key": "name",
+                            "Value": "Testing Instance"
+                        }
+                    ],
+                    "VirtualizationType": "hvm",
+                    "CpuOptions": {
+                        "CoreCount": 1,
+                        "ThreadsPerCore": 1
+                    },
+                    "CapacityReservationSpecification": {
+                        "CapacityReservationPreference": "open"
+                    },
+                    "HibernationOptions": {
+                        "Configured": false
+                    },
+                    "MetadataOptions": {
+                        "State": "applied",
+                        "HttpTokens": "optional",
+                        "HttpPutResponseHopLimit": 1,
+                        "HttpEndpoint": "enabled",
+                        "HttpProtocolIpv6": "disabled",
+                        "InstanceMetadataTags": "disabled"
+                    },
+                    "EnclaveOptions": {
+                        "Enabled": false
+                    },
+                    "PrivateDnsNameOptions": {
+                        "HostnameType": "ip-name",
+                        "EnableResourceNameDnsARecord": false,
+                        "EnableResourceNameDnsAAAARecord": false
+                    },
+                    "MaintenanceOptions": {
+                        "AutoRecovery": "default"
+                    },
+                    "InstanceId": "i-647cd3e5b041ca409",
+                    "ImageId": "ami-alpine",
+                    "State": {
+                        "Code": 16,
+                        "Name": "running"
+                    },
+                    "PrivateDnsName": "ip-172-31-32-10.ec2.internal",
+                    "AmiLaunchIndex": 0,
+                    "InstanceType": "t3.micro",
+                    "LaunchTime": "2026-10-02T13:40:21.628000+00:00",
+                    "Placement": {
+                        "Tenancy": "default",
+                        "AvailabilityZone": "us-east-1c"
+                    },
+                    "Monitoring": {
+                        "State": "disabled"
+                    },
+                    "SubnetId": "subnet-default-us-east-1-c",
+                    "VpcId": "vpc-default-us-east-1",
+                    "PrivateIpAddress": "172.31.32.10"
+                }
+            ]
+        }
+    ]
+}
