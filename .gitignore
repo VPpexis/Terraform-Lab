@@ -25,6 +25,7 @@ secrets.tf
 !.env.example
 .envrc
 
+tfplan
 *.tfplan
 *.out
 *.pem
