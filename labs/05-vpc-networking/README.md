@@ -86,4 +86,56 @@
 
 ## Learnings
 
-_(Fill this in as you go — your own words stick best.)_
+### CIDR & subnet sizing
+
+- In `/N`, the first N bits are locked as the network; hosts = 2^(32−N): `/16` → 65,536, `/24` → 256, `/28` → 16.
+- AWS allows VPC blocks from **/16 (largest) to /28 (smallest)** — a `/15` (131,072 addresses) gets rejected in real AWS even if Floci shrugs.
+- AWS reserves **5 addresses per subnet** (network address, router, DNS, future use, broadcast), so a `/28` leaves 11 usable.
+
+### What actually makes a subnet "public"
+
+- Public-ness is not a switch — it's a **consequence of routing**. The chain: subnet → associated route table → route `0.0.0.0/0` → internet gateway. Has a path to the IGW ⇒ public subnet.
+- Every subnet always has a route table: mine if I associate one, otherwise the VPC's **main route table** (which only holds the local VPC route). No IGW route ⇒ no internet path ⇒ effectively private. A production "private" subnet usually adds a NAT route for egress.
+- Instance private IPs are handed out from the subnet's CIDR automatically; DNS/DHCP configuration lives at the **VPC level** (DHCP option sets), not per-subnet. `map_public_ip_on_launch` just auto-assigns public IPs — it creates no routing.
+
+### Implicit dependencies & ordering
+
+- Referencing `aws_vpc.main.id` doesn't just pass a value — it creates an **implicit dependency** (an edge in the dependency graph).
+- **Dependencies** = what a resource needs (subnet depends on VPC → VPC gets created first). **Dependents** = what needs it (the VPC's dependents include the subnet, IGW, route table).
+- Create order runs dependencies first; destroy runs **dependents first** (the graph in reverse). That's why `terraform destroy` deletes instance → subnet → VPC correctly without me specifying anything.
+
+### Mutable vs ForceNew → `~` vs `-/+`
+
+- Mutable attributes update **in place** (`~`): security group rules can be authorized/revoked on a live ENI anytime, so my ingress-rule change never touched the instance.
+- **ForceNew** attributes replace (`-/+`): an instance's placement is immutable — `subnet_id` cannot change after creation — so Terraform destroys and recreates. (The *subnet* itself is modifiable; it's the instance's placement in it that isn't.)
+- Habit: in provider docs, every "Forces new resource" note is a replacement trigger.
+
+### Security groups — the real thing
+
+- An SG is a virtual firewall attached to an instance's **ENI** (network interface), not "the instance" itself — and it's **stateful**: allow a request in and the reply automatically flows out (connection tracking), no mirrored rule needed.
+- **Allow-list only**: nothing is denied *explicitly*; anything not matched by an allow rule is **implicitly denied**. Explicit deny rules — and stateless behavior — belong to NACLs, which sit at the subnet level.
+- A fresh SG's default posture: **no inbound rules, allow-all egress**.
+- Multiple SGs on one instance = the **union** of all their rules — no SG can subtract a rule another one allows.
+- Rule anatomy: protocol + port range + **source** — and the source is *the client*, not me: `0.0.0.0/0` = any internet client; the VPC CIDR = only machines inside my own network. A source can also be another security group (`referenced_security_group_id`) — that's how tiers will talk in future labs (ALB → app → DB) — or a prefix list.
+- Terraform shapes: `aws_security_group` is the container; rules are either inline `ingress {}` blocks **or** separate `aws_vpc_security_group_ingress_rule` resources (what this lab used — one rule per resource, clean diffs and reviews). Don't mix the two styles on the same SG — they fight over the rule set.
+- Rules are **mutable**: authorize/revoke works on a live ENI anytime ⇒ plan shows `~` and the instance never notices. The SG's own `name` is ForceNew though — renaming replaces the group (hence `name_prefix` exists to avoid collisions).
+- Least privilege: `0.0.0.0/0` on port 80 is normal for a public web server; the same on SSH (22) or a database port is how machines get found and brute-forced.
+
+### Floci's emulation gap (SG edition)
+
+- Floci **models** SGs — stores rules, serves them through the API — but by default does **not enforce** them on packets. Instead, a CIDR-sourced TCP rule acts as a signal to publish: Floci starts an `alpine/socat` sidecar and maps a host port (`Published EC2 instance ... app port 8080 on host port 30,000`).
+- The rule's source CIDR isn't checked, and a port opened *only* to a referenced security group (no CIDR) isn't published on the host at all.
+- Real AWS has no sidecars: packets traverse the IGW to the instance's public IP and the SG filters them at the ENI. Emulator "reachability" ≠ production "filtering" — so I still write rules as production would judge them.
+
+### Bug hunt: "Address in use" on port 80
+
+- `user_data` running `httpd -p 80` failed with exit code 1: `bind: Address in use`, and `curl` showed *Empty reply from server*.
+- `netstat` inside the instance revealed `169.254.169.254:80 LISTEN` — that's **Floci's in-container IMDS proxy**, squatting on port 80. Binding `0.0.0.0:80` collides with it.
+- On real AWS, IMDS is not a local listener on the instance — port 80 is free for web servers. This was an **emulation boundary**, not a config mistake.
+- Fix: serve on another port (`8080`), update the SG rule, and recreate the instance (`terraform apply -replace=...`) because user_data only runs at first boot (Lab 04 callback).
+
+### Victory lap: the full chain
+
+`curl localhost:30000` → socat sidecar → Floci VPC Docker network → instance `10.0.1.12:8080` → busybox httpd → `/var/www/index.html` → **HTTP 200 "Hello World"** — a real request path from my Mac into a network I built myself, emulated end to end.
+
+References: [AWS VPC CIDR blocks](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-cidr-blocks.html), [AWS subnet configuration](https://docs.aws.amazon.com/vpc/latest/userguide/configure-subnets.html), [Floci EC2 (SG publishing)](https://floci.io/floci/services/ec2/)
